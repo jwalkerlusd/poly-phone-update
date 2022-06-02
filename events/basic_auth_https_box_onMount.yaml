@@ -1,0 +1,185 @@
+# for the onMount event in the basic_auth_http_box
+
+try:
+  # set basic_auth_https_update_result property in state if basic_auth_http worked
+  - id: set_state_basic_auth_https_update_result_if_basic_http_worked
+    type: SetState
+    params:
+      hosts_list.$.basic_auth_https_update_result:
+        _state: hosts_list.$.basic_auth_http_update_result
+
+  # throw if the basic_auth_http method worked
+  - id: throw_if_http_worked
+    type: Throw
+    params:
+      throw:
+        _state: hosts_list.$.basic_auth_https_update_result
+    messages:
+      error: false
+  
+  # retrieve the version
+  - id: get_version_basic
+    type: Request
+    params: poly_get_version_https_basic_auth
+    messages:
+      error: false
+
+  # set the version property in state
+  - id: set_state_version
+    type: SetState
+    params:
+      hosts_list.$.version:
+        _get:
+          from:
+            # must stringify then parse again when using _actions
+            _json.parse:
+              _json.stringify:
+                _actions: get_version_basic.response
+          key: data
+
+  # retrieve available versions and paths
+  - id: get_available_basic
+    type: Request
+    params: poly_get_available_https_basic_auth
+    messages:
+      error: false
+
+  # set the get_available_response property in state
+  - id: set_state_get_available_response
+    type: SetState
+    params:
+      hosts_list.$.get_available_response:
+        _js.xml2json:
+          - _get:
+              from:
+                # must stringify then parse again when using _actions
+                _json.parse:
+                  _json.stringify:
+                    _actions: get_available_basic.response
+              key: data
+          - ""
+
+  # set the available_versions property in state
+  - id: set_state_available_versions
+    type: SetState
+    params:
+      hosts_list.$.available_versions:
+        _get:
+          from:
+            _json.parse:
+              _state: hosts_list.$.get_available_response
+          key: PHONE_IMAGES.REVISION.PHONE_IMAGE
+  
+  # fix available_versions if its an object instead of an array (due to xml2json parsing)
+  - id: fix_available_versions
+    type: SetState
+    params:
+      hosts_list.$.available_versions:
+        # if available_versions is an object then add it to an array
+        _if:
+          test:
+            _type:
+              type: object
+              on:
+                _state: hosts_list.$.available_versions
+          then:
+            - _state: hosts_list.$.available_versions
+          else:
+            _state: hosts_list.$.available_versions
+
+  # set candidate_versions property in state
+  - id: set_state_candidate_versions
+    type: SetState
+    params:
+      hosts_list.$.candidate_versions:
+        # filter then sort to determine which versions are actually above the current
+        _js.arraySortWithCallback:
+          - _array.filter:
+              on:
+                _state: hosts_list.$.available_versions
+              callback:
+                _function:
+                  __eq:
+                    - __js.versionCompare:
+                        - __args: 0.VERSION
+                        - __state: hosts_list.$.version
+                    - 1
+          - _function:
+              __js.versionCompare:
+                - __args: 0.VERSION
+                - __state: hosts_list.$.version
+
+  # set the update_version property in state
+  - id: set_state_update_version
+    type: SetState
+    params:
+      hosts_list.$.update_version:
+        # the first candidate should be the latest
+        _get:
+          from:
+            _state: hosts_list.$.candidate_versions
+          key: 0.VERSION
+          default: false
+
+  # set the upgrade_url property in state
+  - id: set_state_upgrade_url
+    type: SetState
+    params:
+      hosts_list.$.upgrade_url:
+        # the first candidate should be the latest
+        _get:
+          from:
+            _state: hosts_list.$.candidate_versions
+          key: 0.PATH
+          default: false
+
+  # set the basic_auth_https_update_result property in state if at the latest version already
+  - id: set_state_basic_auth_https_update_result_if_up_to_date
+    type: SetState
+    params:
+      hosts_list.$.basic_auth_https_update_result:
+        _eq:
+          - _state: hosts_list.$.upgrade_url
+          - false
+
+  # throw prematurely if result is true already
+  - id: throw_if_up_to_date
+    type: Throw
+    params:
+      throw:
+        _state: hosts_list.$.basic_auth_https_update_result
+    messages:
+      error: false
+
+  # request the upgrade process
+  - id: upgrade_basic
+    type: Request
+    params: poly_upgrade_https_basic_auth
+    messages:
+      error: false
+
+  # set the upgrade_request_response property in state
+  - id: set_state_upgrade_request_response
+    type: SetState
+    params:
+      hosts_list.$.upgrade_request_response:
+        _json.stringify:
+          _actions: upgrade_basic.response
+
+  # set the basic_auth_https_update_result property in state
+  - id: set_state_basic_auth_https_update_result
+    type: SetState
+    params:
+      # set to true if actions got this far
+      hosts_list.$.basic_auth_https_update_result: true
+
+catch:
+  # set the basic_auth_https_update_result property in state
+  - id: set_state_basic_auth_https_update_result
+    type: SetState
+    params:
+      # set to false if actions failed
+      hosts_list.$.basic_auth_https_update_result:
+        _or:
+          - _state: hosts_list.$.basic_auth_https_update_result
+          - false

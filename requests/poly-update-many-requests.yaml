@@ -1,0 +1,291 @@
+# for retrieving the current version using Basic Auth only
+- id: poly_get_version_http_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    # httpsAgentOptions:
+    #   rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "http://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getPhoneVersion"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+
+# for retrieving the available versions and URLs using Basic Auth only
+- id: poly_get_available_http_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    # httpsAgentOptions:
+    #   rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "http://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+    data: ""
+
+# for starting the upgrade using Basic Auth only
+- id: poly_upgrade_http_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: post
+    # httpsAgentOptions:
+    #   rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "http://"
+        - _state: hosts_list.$.host
+        - "/form-submit/Utilities/softwareUpgrade/upgrade"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+    # data: "URLPath=http%3A%2F%2Fdownloads.polycom.com%2Fvoice%2Fsoftware%2FUC_Software_6_4_2_release_sig_split%2F&serverType=plcmserver"
+    data:
+      _string.concat:
+        - "URLPath="
+        - _state: hosts_list.$.upgrade_url
+        - "&serverType=plcmserver"
+
+# for retrieving the current version using Basic Auth only
+- id: poly_get_version_https_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getPhoneVersion"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+
+# for retrieving the available versions and URLs using Basic Auth only
+- id: poly_get_available_https_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+
+# for starting the upgrade using Basic Auth only
+- id: poly_upgrade_https_basic_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: post
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/form-submit/Utilities/softwareUpgrade/upgrade"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+    headers:
+      cookie:
+        _string.concat:
+          - "Authorization=Basic "
+          - _base64.encode:
+              _string.concat:
+                - "Polycom"
+                - ":"
+                - _secret: POLY_UI_PASSWORD
+    # data: "URLPath=http%3A%2F%2Fdownloads.polycom.com%2Fvoice%2Fsoftware%2FUC_Software_6_4_2_release_sig_split%2F&serverType=plcmserver"
+    data:
+      _string.concat:
+        - "URLPath="
+        - _state: hosts_list.$.upgrade_url
+        - "&serverType=plcmserver"
+
+# for retrieving the session cookie needed for the cookie-only and CSRF methods
+- id: poly_request_csrf_auth
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: post
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/form-submit/auth.htm"
+    auth:
+      username: "Polycom"
+      password:
+        _secret: POLY_UI_PASSWORD
+
+# for retrieving the current version using the session-cookie
+- id: poly_request_version_cookie
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getPhoneVersion"
+    headers:
+      cookie:
+        _state: hosts_list.$.cookie
+
+# for retrieving the avilable versions and URLs using the session-cookie
+- id: poly_request_available_cookie
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/Utilities/softwareUpgrade/getAvailableVersions?type=plcmserver"
+    headers:
+      cookie:
+        _state: hosts_list.$.cookie
+
+# for retrieving the CSRF token
+- id: poly_request_csrf_index
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: get
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/index.htm"
+    headers:
+      cookie:
+        _state: hosts_list.$.cookie
+
+# for starting the upgrade using the CSRF auth method
+- id: poly_upgrade_phone_csrf
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: post
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/form-submit/Utilities/softwareUpgrade/upgrade"
+    headers:
+      cookie:
+        _state: hosts_list.$.cookie
+      anti-csrf-token:
+        _state: hosts_list.$.csrf
+    # data: "URLPath=http%3A%2F%2Fdownloads.polycom.com%2Fvoice%2Fsoftware%2FUC_Software_6_4_2_release_sig_split%2F&serverType=plcmserver"
+    data:
+      _string.concat:
+        - "URLPath="
+        - _state: hosts_list.$.upgrade_url
+        - "&serverType=plcmserver"
+
+# for starting the upgrade using the cookie-only auth method
+- id: poly_upgrade_phone_cookie
+  type: AxiosHttp
+  connectionId: poly_device
+  properties:
+    method: post
+    httpsAgentOptions:
+      rejectUnauthorized: false
+    url:
+      _string.concat:
+        - "https://"
+        - _state: hosts_list.$.host
+        - "/form-submit/Utilities/softwareUpgrade/upgrade"
+    headers:
+      cookie:
+        _state: hosts_list.$.cookie
+    # data: "URLPath=http%3A%2F%2Fdownloads.polycom.com%2Fvoice%2Fsoftware%2FUC_Software_6_4_2_release_sig_split%2F&serverType=plcmserver"
+    data:
+      _string.concat:
+        - "URLPath="
+        - _state: hosts_list.$.upgrade_url
+        - "&serverType=plcmserver"
