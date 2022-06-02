@@ -268,9 +268,9 @@ areas:
                 type: Box
               - id: procedure_box
                 type: Box
-                properties:
-                  style:
-                    background-color: orange
+                # properties:
+                #   style:
+                #     background-color: orange
                 # TODO use visible property to throttle procedure starts
                 #     - even though visibility follows completed procedures,
                 #       the Request Actions are held up for some reason
@@ -294,10 +294,10 @@ areas:
                   - id: basic_auth_http_box
                     type: Box
                     layout:
-                      span: 24
-                    properties:
-                      style:
-                        background-color: red
+                      span: 0
+                    # properties:
+                    #   style:
+                    #     background-color: red
                     events:
                       onMount:
                         _ref: events/basic_auth_http_box_onMount.yaml
@@ -305,10 +305,10 @@ areas:
                       - id: basic_auth_https_box
                         type: Box
                         layout:
-                          span: 17
-                        properties:
-                          style:
-                            background-color: green
+                          span: 0
+                        # properties:
+                        #   style:
+                        #     background-color: green
                         events:
                           onMount:
                             _ref: events/basic_auth_https_box_onMount.yaml
@@ -316,10 +316,10 @@ areas:
                           - id: csrf_auth_https_box
                             type: Box
                             layout:
-                              span: 12
-                            properties:
-                              style:
-                                background-color: blue
+                              span: 0
+                            # properties:
+                            #   style:
+                            #     background-color: blue
                             events:
                               onMount:
                                 _ref: events/csrf_auth_https_box_onMount.yaml
@@ -327,10 +327,10 @@ areas:
                               - id: complete_box
                                 type: Box
                                 layout:
-                                  span: 12
-                                properties:
-                                  style:
-                                    background-color: red
+                                  span: 0
+                                # properties:
+                                #   style:
+                                #     background-color: red
                                 events:
                                   onMount:
                                     - id: set_state_complete
