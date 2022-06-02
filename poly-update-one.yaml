@@ -1,0 +1,96 @@
+id: poly-update-one
+type: PageHeaderMenu
+
+requests:
+  _ref: requests/poly-update-many-requests.yaml
+
+areas:
+  content:
+    gutter: 16
+    blocks:
+      - id: input_host
+        type: TextInput
+        layout:
+          span: 4
+        required: true
+        properties:
+          title: Host
+          label:
+            inline: true
+      - id: update_button
+        type: Button
+        layout:
+          span: 4
+        properties:
+          title: Update Phone
+        events:
+          onClick:
+            - id: validate
+              type: Validate
+              params: input_host
+            - id: reset_hosts_list
+              type: SetState
+              params:
+                hosts_list: []
+            - id: set_hosts_list
+              type: SetState
+              params: 
+                hosts_list:
+                  - host:
+                      _state: input_host
+      - id: hosts_list
+        type: List
+        blocks:
+          - id: basic_auth_http_box
+            type: Box
+            events:
+              onMount:
+                _ref: events/basic_auth_http_box_onMount.yaml
+            blocks:
+              - id: basic_auth_https_box
+                type: Box
+                events:
+                  onMount:
+                    _ref: events/basic_auth_https_box_onMount.yaml
+                blocks:
+                  - id: csrf_auth_https_box
+                    type: Box
+                    events:
+                      onMount:
+                        _ref: events/csrf_auth_https_box_onMount.yaml
+          - id: version
+            type: Markdown
+            properties:
+              content:
+                _state: hosts_list.$.version
+          - id: get_available_response
+            type: Markdown
+            properties:
+              content:
+                _string.concat:
+                  - "```\n"
+                  - _state: hosts_list.$.get_available_response
+                  - "\n```"
+          - id: upgrade_url
+            type: Markdown
+            properties:
+              content:
+                _state: hosts_list.$.upgrade_url
+          - id: upgrade_request_response
+            type: Markdown
+            properties:
+              content:
+                _string.concat:
+                  - "```\n"
+                  - _state: hosts_list.$.upgrade_request_response
+                  - "\n```"
+          # - id: result_icon_success
+          #   type: Icon
+          #   properties:
+          #     color: '#52c41a'
+          #     name: CheckCircleFilled
+          #     size: 30
+          #   visible:
+          #     _if_not:
+          #       - _state: hosts_list.$.upgrade_request_result
+          #       - false

@@ -1,0 +1,471 @@
+id: poly-update-many
+type: PageHeaderMenu
+
+events:
+  onEnter:
+    - id: set_hosts
+      type: SetGlobal
+      params:
+        hosts: ""
+
+requests:
+  _ref: requests/poly-update-many-requests.yaml
+areas:
+  content:
+    gutter: 16
+    blocks:
+      - id: hosts_box_left
+        type: Card
+        properties:
+          size: small
+          title: Parse hosts from
+        layout:
+          span: 12
+        areas:
+          content:
+            gutter: 8
+            blocks:
+              - id: parse_selector
+                type: ButtonSelector
+                properties:
+                  label:
+                    disabled: true
+                  options:
+                    - YAML
+                    - JSON
+                    - CSV
+                    - TSV
+                events:
+                  onChange:
+                    _ref: parse-hosts.yaml
+              - id: hosts_text_area
+                type: TextArea
+                properties:
+                  label:
+                    disabled: true
+                  rows: 14
+                  placeholder:
+                    _switch:
+                      branches:
+                        - if:
+                            _eq:
+                              - _state: parse_selector
+                              - YAML
+                          then: paste YAML-parsable text here...(array of objects; reads "host" property from each object)
+                        - if:
+                            _eq:
+                              - _state: parse_selector
+                              - JSON
+                          then: paste JSON-parsable text here...(array of objects; reads "host" property from each object)
+                        - if:
+                            _eq:
+                              - _state: parse_selector
+                              - CSV
+                          then: paste CSV-parsable text here (no column titles; reads host address from first column)
+                        - if:
+                            _eq:
+                              - _state: parse_selector
+                              - TSV
+                          then: paste TSV-parsable (Tab-separated) text here (no column titles; reads host address from first column)
+                      default: paste parsable text here then select format above...(selecting a format first will display hints here)
+                events:
+                  onChange:
+                    _ref: parse-hosts.yaml
+      - id: hosts_card_right
+        type: Card
+        properties:
+          size: small
+          title:
+            _string.concat:
+              - "Parsed hosts &nbsp;&nbsp;&nbsp;&nbsp;(Total: "
+              - _array.length:
+                  _state: parsed_hosts_list
+              - ", Unique: "
+              - _array.length:
+                  _array.filter:
+                    on:
+                      _state: parsed_hosts_list
+                    callback:
+                      _function:
+                        __not:
+                          __args: 0.isDuplicate
+              - ", Invalid: "
+              - _array.length:
+                  _array.filter:
+                    on:
+                      _state: parsed_hosts_list
+                    callback:
+                      _function:
+                        __not:
+                          __args: 0.isValidHostname
+              - ")"
+        layout:
+          span: 12
+        areas:
+          content:
+            align: middle
+            overflow: auto
+            gutter: 4
+            blocks:
+              - id: parsed_hosts_list
+                type: List
+                properties:
+                  style:
+                    height: 362px
+                    border: "1px solid #d9d9d9"
+                    padding: 4px
+                areas:
+                  content:
+                    gutter: 4
+                    blocks:
+                      - id: host
+                        type: Markdown
+                        properties:
+                          style:
+                            background-color:
+                              _switch:
+                                branches:
+                                  # color invalid hostnames in red
+                                  - if:
+                                      _not:
+                                        _state: parsed_hosts_list.$.isValidHostname
+                                    then: "#ffb6c1"
+                                  # color duplicates yellow
+                                  - if:
+                                      _state: parsed_hosts_list.$.isDuplicate
+                                    then: "#fffacd"
+                                  # color every other (odd index) white
+                                  # - if:
+                                  #     _number.isInteger:
+                                  #       _divide:
+                                  #         - _index: 0
+                                  #         - 2
+                                  #   then: "white"
+                                # color all others gray
+                                default: "#fafafafa"
+                          content:
+                            _if:
+                              test:
+                                _eq:
+                                  - _state: parsed_hosts_list.$.host
+                                  - ""
+                              then: "(empty)"
+                              else:
+                                _state: parsed_hosts_list.$.host
+      - id: buttons_box
+        type: Box
+        areas:
+          content:
+            justify: space-between
+            blocks:
+              - id: update_button
+                type: Button
+                layout:
+                  size: auto
+                properties:
+                  title: Update Phones
+                  disabled:
+                    _not:
+                      _array.length:
+                        _state: parsed_hosts_list
+                events:
+                  onClick:
+                    - id: reset_hosts_list
+                      type: SetState
+                      params:
+                        hosts_list: []
+                    - id: set_hosts_list
+                      type: SetState
+                      params:
+                        hosts_list:
+                          # filter hosts to valid and unique only
+                          _array.filter:
+                            on:
+                              _state: parsed_hosts_list
+                            callback:
+                              _function:
+                                __and:
+                                  - __args: 0.isValidHostname
+                                  - __not:
+                                      __args: 0.isDuplicate
+              - id: export_button
+                type: Button
+                layout:
+                  size: auto
+                properties:
+                  title: Export to CSV
+                  disabled:
+                    _not:
+                      _array.length:
+                        _state: hosts_list
+                events:
+                  onClick:
+                    - id: generate_csv
+                      type: JsAction
+                      params:
+                        name: csvMake
+                        args:
+                          # csv filename
+                          - update_phones_results.csv
+                          # an array of data to export; preprocessing here
+                          - _array.map:
+                              on:
+                                _state: hosts_list
+                              callback:
+                                _function:
+                                  __object.assign:
+                                    - __args: 0
+                                    - result:
+                                        __or:
+                                          - __args: 0.basic_auth_http_update_result
+                                          - __args: 0.basic_auth_https_update_result
+                                          - __args: 0.csrf_auth_https_update_result
+                                      current_version:
+                                        __args: 0.version
+                                      update_version:
+                                        __args: 0.update_version
+                          # an array of field definitions
+                          - - host
+                            - current_version
+                            - update_version
+                            - result
+      - id: hosts_list_card
+        type: Card
+        properties:
+          size: small
+        areas:
+          title:
+            blocks:
+              - id: column_title_host
+                type: Markdown
+                layout:
+                  span: 7
+                properties:
+                  content: Host
+              - id: column_title_current_version
+                type: Markdown
+                layout:
+                  span: 7
+                properties:
+                  content: Current Version
+              - id: column_title_update_version
+                type: Markdown
+                layout:
+                  span: 7
+                properties:
+                  content: Update Version
+              - id: column_title_result
+                type: Markdown
+                layout:
+                  span: 3
+                properties:
+                  content: Result
+        blocks:
+          - id: hosts_list
+            type: List
+            blocks:
+              - id: procedure_complete_monitor_box
+                type: Box
+              - id: procedure_box
+                type: Box
+                properties:
+                  style:
+                    background-color: orange
+                # TODO use visible property to throttle procedure starts
+                #     - even though visibility follows completed procedures,
+                #       the Request Actions are held up for some reason
+                # visible:
+                #   # either...
+                #   _or:
+                #     # ...index is less than 10
+                #     - _lt:
+                #         - _index: 0
+                #         - 5
+                #     # ...or hosts_list.$.result_icon_trying.visible of the host n-10 is finished
+                #     - _state:
+                #         _string.concat:
+                #           - "hosts_list."
+                #           # index minus 10
+                #           - _subtract:
+                #               - _index: 0
+                #               - 5
+                #           - ".procedure_complete"
+                blocks:
+                  - id: basic_auth_http_box
+                    type: Box
+                    layout:
+                      span: 24
+                    properties:
+                      style:
+                        background-color: red
+                    events:
+                      onMount:
+                        _ref: events/basic_auth_http_box_onMount.yaml
+                    blocks:
+                      - id: basic_auth_https_box
+                        type: Box
+                        layout:
+                          span: 17
+                        properties:
+                          style:
+                            background-color: green
+                        events:
+                          onMount:
+                            _ref: events/basic_auth_https_box_onMount.yaml
+                        blocks:
+                          - id: csrf_auth_https_box
+                            type: Box
+                            layout:
+                              span: 12
+                            properties:
+                              style:
+                                background-color: blue
+                            events:
+                              onMount:
+                                _ref: events/csrf_auth_https_box_onMount.yaml
+                            blocks:
+                              - id: complete_box
+                                type: Box
+                                layout:
+                                  span: 12
+                                properties:
+                                  style:
+                                    background-color: red
+                                events:
+                                  onMount:
+                                    - id: set_state_complete
+                                      type: SetState
+                                      params:
+                                        hosts_list.$.procedure_complete: true
+              - id: hosts_list.$
+                type: Markdown
+                layout:
+                  span: 7
+                style:
+                  font-weight: normal
+                properties:
+                  content:
+                    _state: hosts_list.$.host
+              - id: current_version
+                type: Markdown
+                layout:
+                  span: 7
+                style:
+                  font-weight: normal
+                properties:
+                  content:
+                    _state: hosts_list.$.version
+              - id: update_version
+                type: Markdown
+                layout:
+                  span: 7
+                style:
+                  font-weight: normal
+                properties:
+                  content:
+                    _state: hosts_list.$.update_version
+              - id: hosts_list.$.result_icon_trying
+                type: Icon
+                layout:
+                  span: 3
+                properties:
+                  color: '#bfbfbf'
+                  name: LoadingOutlined
+                  size: 30
+                visible:
+                  _not:
+                    _or:
+                      - _or:
+                          - _state: hosts_list.$.basic_auth_http_update_result
+                          - _state: hosts_list.$.basic_auth_https_update_result
+                          - _state: hosts_list.$.csrf_auth_https_update_result
+                      - _and:
+                          - _eq:
+                              - _state: hosts_list.$.basic_auth_http_update_result
+                              - false
+                          - _eq:
+                              - _state: hosts_list.$.basic_auth_https_update_result
+                              - false
+                          - _eq:
+                              - _state: hosts_list.$.csrf_auth_https_update_result
+                              - false
+                  # _or:
+                  #   - _eq:
+                  #       - _state: hosts_list.$.basic_auth_http_update_result
+                  #       - null
+                  #   - _eq:
+                  #       - _state: hosts_list.$.basic_auth_https_update_result
+                  #       - null
+                  #   - _eq:
+                  #       - _state: hosts_list.$.csrf_auth_https_update_result
+                  #       - null
+              - id: result_icon_success
+                type: Icon
+                layout:
+                  span: 3
+                properties:
+                  color: '#52c41a'
+                  name: CheckCircleFilled
+                  size: 30
+                visible:
+                  _or:
+                    - _state: hosts_list.$.basic_auth_http_update_result
+                    - _state: hosts_list.$.basic_auth_https_update_result
+                    - _state: hosts_list.$.csrf_auth_https_update_result
+              - id: result_icon_fail
+                type: Icon
+                layout:
+                  span: 3
+                properties:
+                  color: '#f5222d'
+                  name: ExclamationCircleFilled
+                  size: 30
+                visible:
+                  _and:
+                    - _eq:
+                        - _state: hosts_list.$.basic_auth_http_update_result
+                        - false
+                    - _eq:
+                        - _state: hosts_list.$.basic_auth_https_update_result
+                        - false
+                    - _eq:
+                        - _state: hosts_list.$.csrf_auth_https_update_result
+                        - false
+              # - id: cookie
+              #   type: Paragraph
+              #   properties:
+              #     content:
+              #       _state: hosts_list.$.cookie
+              # - id: csrf
+              #   type: Paragraph
+              #   properties:
+              #     content:
+              #        _state: hosts_list.$.csrf
+              # - id: basic_auth_result
+              #   type: Paragraph
+              #   properties:
+              #     content:  
+              #       _string.concat:
+              #         - "basic_auth_result: "
+              #         - _state: hosts_list.$.basic_auth_result
+              # - id: csrf_auth_result
+              #   type: Paragraph
+              #   properties:
+              #     content:
+              #       _string.concat:
+              #         - "csrf_auth_result: "
+              #         - _state: hosts_list.$.csrf_auth_result
+              # - id: md
+              #   type: Markdown
+              #   properties:
+              #     content:
+              #       _string.concat:
+              #         - "```\n"
+              #         - _json.stringify:
+              #             _state: hosts_list
+              #         - "\n```"
+              # - id: basic_auth_http_result
+              #   type: Markdown
+              #   properties:
+              #     content:
+              #       _state: hosts_list.$.upgrade_url

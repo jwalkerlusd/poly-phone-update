@@ -1,0 +1,4 @@
+id: poly_device
+type: AxiosHttp
+properties:
+  timeout: 10000
