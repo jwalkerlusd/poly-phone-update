@@ -1,184 +1,179 @@
-# TODO: remove empties and duplicates
-                    - id: clear
-                      type: SetState
-                      params:
-                        parsed_hosts_list: {}
-                    - id: parse_hosts_yaml
-                      type: SetState
-                      async: true
-                      skip:
-                        _not:
-                          _eq:
-                            - _state: parse_selector
-                            - YAML
-                      params:
-                        parsed_hosts_list:
-                          # add isDuplicate property
-                          _array.map:
-                            on:
-                              # map hosts to single array
-                              _array.map:
-                                on:
-                                  _yaml.parse:
-                                    _state: hosts_text_area
-                                callback:
-                                  _function:
-                                    __args: 0.host
-                            callback:
-                              _function:
-                                host:
-                                  __args: 0
-                                isDuplicate:
-                                  __ne:
-                                    - __array.indexOf:
-                                        on:
-                                          __args: 2
-                                        value:
-                                          __args: 0
-                                    - __args: 1
-                                isValidHostname:
-                                  __regex:
-                                    pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
-                                    on:
-                                      __args: 0
-                    - id: parse_hosts_json
-                      type: SetState
-                      async: true
-                      skip:
-                        _not:
-                          _eq:
-                            - _state: parse_selector
-                            - JSON
-                      params:
-                        parsed_hosts_list:
-                          # add isDuplicate property
-                          _array.map:
-                            on:
-                              # map hosts to single array
-                              _array.map:
-                                on:
-                                  _json.parse:
-                                    _state: hosts_text_area
-                                callback:
-                                  _function:
-                                    __args: 0.host
-                            callback:
-                              _function:
-                                host:
-                                  __args: 0
-                                isDuplicate:
-                                  __ne:
-                                    - __array.indexOf:
-                                        on:
-                                          __args: 2
-                                        value:
-                                          __args: 0
-                                    - __args: 1
-                                isValidHostname:
-                                  __regex:
-                                    pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
-                                    on:
-                                      __args: 0
-                    - id: parse_hosts_csv
-                      type: SetState
-                      async: true
-                      skip:
-                        _not:
-                          _eq:
-                            - _state: parse_selector
-                            - CSV
-                      params:
-                        parsed_hosts_list:
-                          # add isDuplicate property
-                          _array.map:
-                            on:
-                              _array.map:
-                                on:
-                                  _string.split:
-                                    on:
-                                      _string.replace:
-                                        on:
-                                          _state: hosts_text_area
-                                        regex: "\r\n"
-                                        newSubstr: "\n"
-                                    separator: "\n"
-                                callback:
-                                  _function:
-                                    # just return the value in the first column
-                                    __get:
-                                      from:
-                                        __string.split:
-                                          on:
-                                            __args: 0
-                                          separator: ","
-                                      key: 0
-                            callback:
-                              _function:
-                                host:
-                                  __args: 0
-                                isDuplicate:
-                                  __ne:
-                                    - __array.indexOf:
-                                        on:
-                                          __args: 2
-                                        value:
-                                          __args: 0
-                                    - __args: 1
-                                isValidHostname:
-                                  __regex:
-                                    pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
-                                    on:
-                                      __args: 0
-                    - id: parse_hosts_tsv
-                      type: SetState
-                      async: true
-                      skip:
-                        _not:
-                          _eq:
-                            - _state: parse_selector
-                            - TSV
-                      params:
-                        parsed_hosts_list:
-                          # add isDuplicate property
-                          _array.map:
-                            on:
-                              _array.map:
-                                on:
-                                  _string.split:
-                                    on:
-                                      _string.replace:
-                                        on:
-                                          _state: hosts_text_area
-                                        regex: "\r\n"
-                                        newSubstr: "\n"
-                                    separator: "\n"
-                                callback:
-                                  _function:
-                                    # just return the value in the first column
-                                    __get:
-                                      from:
-                                        __string.split:
-                                          on:
-                                            __args: 0
-                                          separator: "\t"
-                                      key: 0
-                            callback:
-                              _function:
-                                host:
-                                  __args: 0
-                                isDuplicate:
-                                  __ne:
-                                    - __array.indexOf:
-                                        on:
-                                          __args: 2
-                                        value:
-                                          __args: 0
-                                    - __args: 1
-                                isValidHostname:
-                                  __regex:
-                                    pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
-                                    on:
-                                      __args: 0
+- id: clear
+  type: SetState
+  params:
+    parsed_hosts_list: {}
+- id: parse_hosts_yaml
+  type: SetState
+  async: true
+  skip:
+    _ne:
+      - _state: parse_selector
+      - YAML
+  params:
+    parsed_hosts_list:
+      # add isDuplicate property
+      _array.map:
+        on:
+          # map hosts to single array
+          _array.map:
+            on:
+              _yaml.parse:
+                _state: hosts_text_area
+            callback:
+              _function:
+                __args: 0.host
+        callback:
+          _function:
+            host:
+              __args: 0
+            isDuplicate:
+              __ne:
+                - __array.indexOf:
+                    on:
+                      __args: 2
+                    value:
+                      __args: 0
+                - __args: 1
+            isValidHostname:
+              __regex:
+                pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                on:
+                  __args: 0
+- id: parse_hosts_json
+  type: SetState
+  async: true
+  skip:
+    _ne:
+      - _state: parse_selector
+      - JSON
+  params:
+    parsed_hosts_list:
+      # add isDuplicate property
+      _array.map:
+        on:
+          # map hosts to single array
+          _array.map:
+            on:
+              _json.parse:
+                _state: hosts_text_area
+            callback:
+              _function:
+                __args: 0.host
+        callback:
+          _function:
+            host:
+              __args: 0
+            isDuplicate:
+              __ne:
+                - __array.indexOf:
+                    on:
+                      __args: 2
+                    value:
+                      __args: 0
+                - __args: 1
+            isValidHostname:
+              __regex:
+                pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                on:
+                  __args: 0
+- id: parse_hosts_csv
+  type: SetState
+  async: true
+  skip:
+    _ne:
+      - _state: parse_selector
+      - CSV
+  params:
+    parsed_hosts_list:
+      # add isDuplicate property
+      _array.map:
+        on:
+          _array.map:
+            on:
+              _string.split:
+                on:
+                  _string.replace:
+                    on:
+                      _state: hosts_text_area
+                    regex: "\r\n"
+                    newSubstr: "\n"
+                separator: "\n"
+            callback:
+              _function:
+                # just return the value in the first column
+                __get:
+                  from:
+                    __string.split:
+                      on:
+                        __args: 0
+                      separator: ","
+                  key: 0
+        callback:
+          _function:
+            host:
+              __args: 0
+            isDuplicate:
+              __ne:
+                - __array.indexOf:
+                    on:
+                      __args: 2
+                    value:
+                      __args: 0
+                - __args: 1
+            isValidHostname:
+              __regex:
+                pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                on:
+                  __args: 0
+- id: parse_hosts_tsv
+  type: SetState
+  async: true
+  skip:
+    _ne:
+      - _state: parse_selector
+      - TSV
+  params:
+    parsed_hosts_list:
+      # add isDuplicate property
+      _array.map:
+        on:
+          _array.map:
+            on:
+              _string.split:
+                on:
+                  _string.replace:
+                    on:
+                      _state: hosts_text_area
+                    regex: "\r\n"
+                    newSubstr: "\n"
+                separator: "\n"
+            callback:
+              _function:
+                # just return the value in the first column
+                __get:
+                  from:
+                    __string.split:
+                      on:
+                        __args: 0
+                      separator: "\t"
+                  key: 0
+        callback:
+          _function:
+            host:
+              __args: 0
+            isDuplicate:
+              __ne:
+                - __array.indexOf:
+                    on:
+                      __args: 2
+                    value:
+                      __args: 0
+                - __args: 1
+            isValidHostname:
+              __regex:
+                pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                on:
+                  __args: 0
                 # hosts_list:
                 #   _array.reduce:
                 #     on:

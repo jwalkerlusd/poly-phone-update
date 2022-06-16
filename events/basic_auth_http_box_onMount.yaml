@@ -2,24 +2,24 @@
 
 try:
   # set procedure_started property in state
-  - id: set_state_procedure_started
+  - id: set_state_basic_http_procedure_started
     type: SetState
     params:
-      hosts_list.$.procedure_started:
+      hosts_list.$.basic_http_procedure_started:
         _log:
-          event: procedure_started
+          event: basic_http_procedure_started
           when:
             _date: now
 
   # retrieve the version
-  - id: get_version_basic
+  - id: get_version_basic_http
     type: Request
     params: poly_get_version_http_basic_auth
     messages:
       error: false
 
-  # set procedure_started property in state
-  - id: set_state_procedure_started
+  # set get_version_basic_result property in state
+  - id: set_state_get_version_basic_result
     type: SetState
     params:
       hosts_list.$.get_version_basic_result:

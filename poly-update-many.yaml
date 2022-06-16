@@ -3,10 +3,10 @@ type: PageHeaderMenu
 
 events:
   onEnter:
-    - id: set_hosts
-      type: SetGlobal
+    - id: set_state_parsed_hosts_list
+      type: SetState
       params:
-        hosts: ""
+        parsed_hosts_list: []
 
 requests:
   _ref: requests/poly-update-many-requests.yaml
@@ -167,7 +167,9 @@ areas:
                   disabled:
                     _not:
                       _array.length:
-                        _state: parsed_hosts_list
+                        _if_none:
+                          - _state: parsed_hosts_list
+                          - []
                 events:
                   onClick:
                     - id: reset_hosts_list
@@ -264,8 +266,29 @@ areas:
           - id: hosts_list
             type: List
             blocks:
-              - id: procedure_complete_monitor_box
-                type: Box
+              # TODO _ref with custom resolver (and transformer?) to load select procedures
+              #   - a procedure is a chain of Actions performed on a target
+              #   - they are compiled into the value of the onMount or onMountAsync events of blocks
+              #   - procedures may be executed in sequential or parallel
+              #   - procedures are loaded from YAML files
+              #   - the YAML file should parse to an Object or Array of Objects each with the format:
+              #       name: procedure_name
+              #       actions:
+              #       before:
+              #       after:
+              #       mode:
+              #       subs:
+              # TODO for now just use a _ref for each *_onMount.yaml file stated below
+              #   - the custom transformer should insert another Action between each existing Action
+              #     that adds the results of each preceding Action to a special List block for displaying
+              #     those results. The List block can be customized in any way to display the results
+              #   - vars:
+              #       hosts-list-id: // the id of the hosts List block to push the results List block into
+              #                           defaults to "hosts_list"
+              #       results-list-id: // the id of the results List block
+              #                             defaults to "results_list"
+              # - id: procedure_complete_monitor_box
+              #   type: Box
               - id: procedure_box
                 type: Box
                 # properties:
@@ -291,52 +314,86 @@ areas:
                 #               - 5
                 #           - ".procedure_complete"
                 blocks:
-                  - id: basic_auth_http_box
+                  - id: started_box
                     type: Box
                     layout:
                       span: 0
-                    # properties:
-                    #   style:
-                    #     background-color: red
                     events:
                       onMount:
-                        _ref: events/basic_auth_http_box_onMount.yaml
+                        - id: set_state_started
+                          type: SetState
+                          params:
+                            hosts_list.$.procedure_started:
+                              _log:
+                                event: procedure_started
+                                when:
+                                  _date: now
                     blocks:
-                      - id: basic_auth_https_box
+                      - id: basic_auth_http_box
                         type: Box
                         layout:
                           span: 0
                         # properties:
                         #   style:
-                        #     background-color: green
+                        #     background-color: red
                         events:
                           onMount:
-                            _ref: events/basic_auth_https_box_onMount.yaml
+                            # these "_ref"s will fill objects named "procedure_actions" and "procedure_results" with the action definition and the results, respectively, of each Action in the stated YAML files
+                            # the objects will be accessible in each item of the "hosts_list" List
+                            # the Action IDs of the actions list will be the items in the "results_list" List
+                            _ref:
+                              path: events/basic_auth_http_box_onMount.yaml
+                              transformer: transformers/insert-results-actions.js
+                              # vars:
+                              #   results-list-id: results_list_data
                         blocks:
-                          - id: csrf_auth_https_box
+                          - id: basic_auth_https_box
                             type: Box
                             layout:
                               span: 0
                             # properties:
                             #   style:
-                            #     background-color: blue
+                            #     background-color: green
                             events:
                               onMount:
-                                _ref: events/csrf_auth_https_box_onMount.yaml
+                                _ref:
+                                  path: events/basic_auth_https_box_onMount.yaml
+                                  transformer: transformers/insert-results-actions.js
+                                  # vars:
+                                  #   results-list-id: results_list_data
                             blocks:
-                              - id: complete_box
+                              - id: csrf_auth_https_box
                                 type: Box
                                 layout:
                                   span: 0
                                 # properties:
                                 #   style:
-                                #     background-color: red
+                                #     background-color: blue
                                 events:
                                   onMount:
-                                    - id: set_state_complete
-                                      type: SetState
-                                      params:
-                                        hosts_list.$.procedure_complete: true
+                                    _ref:
+                                      path: events/csrf_auth_https_box_onMount.yaml
+                                      transformer: transformers/insert-results-actions.js
+                                      # vars:
+                                      #   results-list-id: results_list_data
+                                blocks:
+                                  - id: complete_box
+                                    type: Box
+                                    layout:
+                                      span: 0
+                                    # properties:
+                                    #   style:
+                                    #     background-color: red
+                                    events:
+                                      onMount:
+                                        - id: set_state_complete
+                                          type: SetState
+                                          params:
+                                            hosts_list.$.procedure_completed:
+                                              _log:
+                                                event: procedure_complete
+                                                when:
+                                                  _date: now
               - id: hosts_list.$
                 type: Markdown
                 layout:
@@ -399,6 +456,14 @@ areas:
                   #   - _eq:
                   #       - _state: hosts_list.$.csrf_auth_https_update_result
                   #       - null
+                events:
+                  onClick:
+                    - id: set_state_show_results_list_box
+                      type: SetState
+                      params:
+                        hosts_list.$.results_list_box_visible:
+                          _not:
+                            _state: hosts_list.$.results_list_box_visible
               - id: result_icon_success
                 type: Icon
                 layout:
@@ -412,6 +477,14 @@ areas:
                     - _state: hosts_list.$.basic_auth_http_update_result
                     - _state: hosts_list.$.basic_auth_https_update_result
                     - _state: hosts_list.$.csrf_auth_https_update_result
+                events:
+                  onClick:
+                    - id: set_state_show_results_list_box
+                      type: SetState
+                      params:
+                        hosts_list.$.results_list_box_visible:
+                          _not:
+                            _state: hosts_list.$.results_list_box_visible
               - id: result_icon_fail
                 type: Icon
                 layout:
@@ -431,6 +504,117 @@ areas:
                     - _eq:
                         - _state: hosts_list.$.csrf_auth_https_update_result
                         - false
+                events:
+                  onClick:
+                    - id: set_state_show_results_list_box
+                      type: SetState
+                      params:
+                        hosts_list.$.results_list_box_visible:
+                          _not:
+                            _state: hosts_list.$.results_list_box_visible
+              - id: results_list_box
+                type: Box
+                visible:
+                  _if_none:
+                    - _state: hosts_list.$.results_list_box_visible
+                    - false
+                areas:
+                  content:
+                    align: middle
+                    overflow: auto
+                    gutter: 4
+                    blocks:
+                      - id: hosts_list.$.results_list
+                        type: List
+                        properties:
+                          direction: row
+                          scroll: true
+                          wrap: nowrap
+                        areas:
+                          content:
+                            gutter: 4
+                            blocks:
+                              - id: result_card
+                                type: Card
+                                properties:
+                                  size: small
+                                  title:
+                                    _state: hosts_list.$.results_list.$
+                                  headerStyle:
+                                    _switch:
+                                      branches:
+                                        # if there is a result for this action AND there
+                                        # is an error then mark red
+                                        - if:
+                                            _ne:
+                                              - _state:
+                                                  _string.concat:
+                                                    - "hosts_list.$.procedure_results."
+                                                    # the action id is the list item
+                                                    - _state: hosts_list.$.results_list.$
+                                                    - ".error"
+                                              - null
+                                          then:
+                                            background-color: lightcoral
+                                            color: white
+                                        # if there is a result for this action AND
+                                        # there is no error then mark green
+                                        - if:
+                                            _and:
+                                              - _ne:
+                                                  - _state:
+                                                      _string.concat:
+                                                        - "hosts_list.$.procedure_results."
+                                                        # the action id is the list item
+                                                        - _state: hosts_list.$.results_list.$
+                                                  - null
+                                              - _eq:
+                                                  - _state:
+                                                      _string.concat:
+                                                        - "hosts_list.$.procedure_results."
+                                                        # the action id is the list item
+                                                        - _state: hosts_list.$.results_list.$
+                                                        - ".error"
+                                                  - null
+                                          then:
+                                            background-color: lightseagreen
+                                            color: white
+                                      # default color is blue
+                                      default:
+                                        background-color: lightblue
+                                        color: black
+                                blocks:
+                                  - id: result_markdown
+                                    type: Markdown
+                                    properties:
+                                      content:
+                                        _string.concat:
+                                          - "```\n"
+                                          - _yaml.stringify:
+                                              - action:
+                                                  _state:
+                                                    _string.concat:
+                                                      - "hosts_list.$.procedure_actions."
+                                                      # the action id is the list item
+                                                      - _state: hosts_list.$.results_list.$
+                                              # the result is in hosts_list.$.procedure_results object with the action.id as the key
+                                                result:
+                                                  _state:
+                                                    _string.concat:
+                                                      - "hosts_list.$.procedure_results."
+                                                      # the action id is the list item
+                                                      - _state: hosts_list.$.results_list.$
+                                          - "\n```"
+                        events:
+                          onMount:
+                            - id: set_state_results_list_content
+                              type: SetState
+                              params:
+                                # set the results_list content to the Action.ids
+                                hosts_list.$.results_list:
+                                  # the ids are the keys of the procedure_actions object
+                                  _object.keys:
+                                    _state: hosts_list.$.procedure_actions
               # - id: cookie
               #   type: Paragraph
               #   properties:

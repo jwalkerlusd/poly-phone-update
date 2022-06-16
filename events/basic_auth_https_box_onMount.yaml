@@ -18,7 +18,7 @@ try:
       error: false
   
   # retrieve the version
-  - id: get_version_basic
+  - id: get_version_basic_https
     type: Request
     params: poly_get_version_https_basic_auth
     messages:
